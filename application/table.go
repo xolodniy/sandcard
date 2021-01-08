@@ -1,11 +1,12 @@
 package application
 
 import (
-	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
-
+	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -17,10 +18,23 @@ type Table struct {
 	ID         int
 	maxPlayers int
 	players    []Player
-	event      chan []byte
+	event      chan event
 
 	deck        []string
+	tablePile   []string
 	discardPile []string
+
+	tableLog []log
+}
+
+type event struct {
+	senderID int
+	body     []byte
+}
+
+type log struct {
+	timestamp time.Time
+	message   string
 }
 
 type Player struct {
@@ -34,10 +48,12 @@ func NewTable() *Table {
 	return &Table{
 		ID:          tableIDCounter,
 		maxPlayers:  4,
-		event:       make(chan []byte),
+		event:       make(chan event),
 		players:     make([]Player, 0),
 		deck:        make([]string, 0),
+		tablePile:   make([]string, 0),
 		discardPile: make([]string, 0),
+		tableLog:    make([]log, 0),
 	}
 }
 
@@ -48,14 +64,48 @@ func (t *Table) AddDeck(c int) *Table {
 
 func (t *Table) Start() {
 	for ev := range t.event {
-		for i := range t.players {
-			v := map[string]interface{}{
-				"time":    time.Now(),
-				"message": string(ev),
-			}
-			if err := t.players[i].connection.WriteJSON(v); err != nil {
-				logrus.WithError(err).Error("can't write message to socket")
-			}
+		evType, event, err := parseEvent(ev.body)
+		if err != nil {
+			t.sayTo(ev.senderID, err)
+			continue
+		}
+		t.handleEvent(evType, event, ev.senderID)
+	}
+}
+
+func (t *Table) sayTo(userID int, message interface{}) {
+	i, ok := t.userByID(userID)
+	if ok {
+		err := t.players[i].connection.WriteJSON(message)
+		if err != nil {
+			logrus.WithError(err).Error("can't write message to connection")
+		}
+	}
+}
+
+func parseEvent(body []byte) (string, interface{}, error) {
+	var template struct {
+		Type  string      `json:"type"`
+		Event interface{} `json:"event"`
+	}
+	if err := json.Unmarshal(body, &template); err != nil {
+		return "", nil, errors.New("invalid event structure")
+	}
+	return template.Type, template.Event, nil
+}
+
+func (t *Table) sayAllPlayers(message string) {
+	var (
+		now = time.Now()
+		l   = log{
+			timestamp: now,
+			message:   message,
+		}
+	)
+	t.tableLog = append(t.tableLog, l)
+	for i := range t.players {
+		if err := t.players[i].connection.WriteJSON(l); err != nil {
+			logrus.WithError(err).Error("can't write message to socket")
 		}
 	}
 }
@@ -90,7 +140,10 @@ func (t *Table) Join(c *websocket.Conn) error {
 				logrus.Debug("got empty message from user ", player.id)
 				continue
 			}
-			t.event <- msg
+			t.event <- event{
+				senderID: player.id,
+				body:     msg,
+			}
 		}
 	}()
 	return nil
