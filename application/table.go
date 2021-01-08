@@ -3,6 +3,7 @@ package application
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -25,6 +26,8 @@ type Table struct {
 	discardPile []string
 
 	tableLog []log
+
+	*sync.Mutex
 }
 
 type eventRaw struct {
@@ -55,6 +58,7 @@ func NewTable() *Table {
 		tablePile:   make([]string, 0),
 		discardPile: make([]string, 0),
 		tableLog:    make([]log, 0),
+		Mutex:       &sync.Mutex{},
 	}
 }
 
@@ -126,6 +130,7 @@ func (t *Table) Join(c *websocket.Conn) error {
 	go func() {
 		for {
 			_, msg, err := c.ReadMessage()
+			t.Lock()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err,
 					websocket.CloseGoingAway,
@@ -146,6 +151,9 @@ func (t *Table) Join(c *websocket.Conn) error {
 				senderID: player.id,
 				body:     msg,
 			}
+			// FIXME: currently, we locks when one event already stay in queue
+			// TODO: unlock only when complete handling event
+			t.Unlock()
 		}
 	}()
 	return nil
