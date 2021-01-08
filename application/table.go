@@ -18,7 +18,7 @@ type Table struct {
 	ID         int
 	maxPlayers int
 	players    []Player
-	event      chan event
+	event      chan eventRaw
 
 	deck        []string
 	tablePile   []string
@@ -27,14 +27,15 @@ type Table struct {
 	tableLog []log
 }
 
-type event struct {
+type eventRaw struct {
 	senderID int
 	body     []byte
 }
 
 type log struct {
-	Timestamp time.Time `json:"timestamp"`
-	Message   string    `json:"message"`
+	Timestamp time.Time   `json:"timestamp"`
+	EventType string      `json:"eventType"`
+	Extra     interface{} `json:"extra"`
 }
 
 type Player struct {
@@ -48,7 +49,7 @@ func NewTable() *Table {
 	return &Table{
 		ID:          tableIDCounter,
 		maxPlayers:  4,
-		event:       make(chan event),
+		event:       make(chan eventRaw),
 		players:     make([]Player, 0),
 		deck:        make([]string, 0),
 		tablePile:   make([]string, 0),
@@ -83,10 +84,10 @@ func (t *Table) sayTo(userID int, message interface{}) {
 	}
 }
 
-func parseEvent(body []byte) (string, interface{}, error) {
+func parseEvent(body []byte) (string, Event, error) {
 	var template struct {
-		Type  string      `json:"type"`
-		Event interface{} `json:"event"`
+		Type  string `json:"type"`
+		Event Event  `json:"event"`
 	}
 	if err := json.Unmarshal(body, &template); err != nil {
 		return "", nil, errors.New("invalid event structure")
@@ -94,12 +95,13 @@ func parseEvent(body []byte) (string, interface{}, error) {
 	return template.Type, template.Event, nil
 }
 
-func (t *Table) sayAllPlayers(message string) {
+func (t *Table) logEvent(eventType string, event interface{}) {
 	var (
 		now = time.Now()
 		l   = log{
 			Timestamp: now,
-			Message:   message,
+			EventType: eventType,
+			Extra:     event,
 		}
 	)
 	t.tableLog = append(t.tableLog, l)
@@ -140,7 +142,7 @@ func (t *Table) Join(c *websocket.Conn) error {
 				logrus.Debug("got empty message from user ", player.id)
 				continue
 			}
-			t.event <- event{
+			t.event <- eventRaw{
 				senderID: player.id,
 				body:     msg,
 			}
@@ -150,18 +152,15 @@ func (t *Table) Join(c *websocket.Conn) error {
 }
 
 func (t *Table) UserIsGone(userID int) {
-	for i := range t.players {
-		if t.players[i].id == userID {
-			t.players = append(t.players[:i], t.players[i+1:]...)
-			return
-		}
+	i, ok := t.userByID(userID)
+	if !ok {
+		return
 	}
+	t.discardPile = append(t.discardPile, t.players[i].cards...)
+	t.players = append(t.players[:i], t.players[i+1:]...)
 }
 
 const (
-	discard = -1
-	table   = 0
-
 	h6 = "heart6"
 	d6 = "diamond6"
 	c6 = "club6"

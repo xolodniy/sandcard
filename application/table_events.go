@@ -10,7 +10,9 @@ const (
 	eventTypeShowTableInfo   = "show_table_info"
 )
 
-func (t *Table) handleEvent(evType string, event interface{}, senderID int) {
+type Event map[string]interface{}
+
+func (t *Table) handleEvent(evType string, event Event, senderID int) {
 	switch evType {
 	case eventTypeGetCardFromDeck:
 		t.sayTo(senderID, t.GetCardFromTable(senderID))
@@ -32,6 +34,7 @@ func (t *Table) GetCardFromTable(userID int) interface{} {
 	deckLastID := len(t.deck) - 1
 	t.players[i].cards = append(t.players[i].cards, t.deck[deckLastID])
 	t.deck = t.deck[:deckLastID]
+	t.logEvent(eventTypeGetCardFromDeck, Event{"userID": userID})
 	return "done"
 }
 
