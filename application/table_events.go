@@ -7,14 +7,14 @@ import (
 
 const (
 	eventTypeGetCardFromDeck = "get_card_from_deck"
-	eventTypeShowCards       = "show_cards"
+	eventTypeShowTableInfo   = "show_table_info"
 )
 
 func (t *Table) handleEvent(evType string, event interface{}, senderID int) {
 	switch evType {
 	case eventTypeGetCardFromDeck:
 		t.sayTo(senderID, t.GetCardFromTable(senderID))
-	case eventTypeShowCards:
+	case eventTypeShowTableInfo:
 		t.sayTo(senderID, t.RetrieveCards(senderID))
 	default:
 		t.sayTo(senderID, "unexpected event type")
@@ -36,11 +36,37 @@ func (t *Table) GetCardFromTable(userID int) interface{} {
 }
 
 func (t *Table) RetrieveCards(userID int) interface{} {
+	type rPlayer struct {
+		ID         int `json:"id"`
+		CardsCount int `json:"cardsCount"`
+	}
+	type response struct {
+		Cards         []string  `json:"cards"`
+		Players       []rPlayer `json:"players"`
+		DeckCardCount int       `json:"deckCardCount"`
+		TablePile     []string  `json:"tablePile"`
+		DiscardPile   []string  `json:"discardPile"`
+		Log           []log     `json:"log"`
+	}
 	i, ok := t.userByID(userID)
 	if !ok {
 		return errors.New("user not found")
 	}
-	return t.players[i].cards
+	players := make([]rPlayer, len(t.players))
+	for i := range players {
+		players[i] = rPlayer{
+			ID:         t.players[i].id,
+			CardsCount: len(t.players[i].cards),
+		}
+	}
+	return response{
+		Cards:         t.players[i].cards,
+		Players:       players,
+		DeckCardCount: len(t.deck),
+		TablePile:     t.tablePile,
+		DiscardPile:   t.discardPile,
+		Log:           t.tableLog,
+	}
 }
 
 func (t *Table) userByID(userID int) (int, bool) {

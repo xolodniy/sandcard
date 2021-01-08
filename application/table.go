@@ -33,8 +33,8 @@ type event struct {
 }
 
 type log struct {
-	timestamp time.Time
-	message   string
+	Timestamp time.Time `json:"timestamp"`
+	Message   string    `json:"message"`
 }
 
 type Player struct {
@@ -98,8 +98,8 @@ func (t *Table) sayAllPlayers(message string) {
 	var (
 		now = time.Now()
 		l   = log{
-			timestamp: now,
-			message:   message,
+			Timestamp: now,
+			Message:   message,
 		}
 	)
 	t.tableLog = append(t.tableLog, l)
