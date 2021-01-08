@@ -21,9 +21,9 @@ type Table struct {
 	players    []Player
 	event      chan eventRaw
 
-	deck        []string
-	tablePile   []string
-	discardPile []string
+	deck        Deck
+	tablePile   Deck
+	discardPile Deck
 
 	tableLog []log
 
@@ -43,7 +43,7 @@ type log struct {
 
 type Player struct {
 	id         int
-	cards      []string
+	cards      Deck
 	connection *websocket.Conn
 }
 
@@ -88,15 +88,15 @@ func (t *Table) sayTo(userID int, message interface{}) {
 	}
 }
 
-func parseEvent(body []byte) (string, Event, error) {
+func parseEvent(body []byte) (string, Extra, error) {
 	var template struct {
 		Type  string `json:"type"`
-		Event Event  `json:"event"`
+		Extra Extra  `json:"extra"`
 	}
 	if err := json.Unmarshal(body, &template); err != nil {
 		return "", nil, errors.New("invalid event structure")
 	}
-	return template.Type, template.Event, nil
+	return template.Type, template.Extra, nil
 }
 
 func (t *Table) logEvent(eventType string, event interface{}) {
@@ -168,9 +168,11 @@ func (t *Table) UserIsGone(userID int) {
 	t.players = append(t.players[:i], t.players[i+1:]...)
 }
 
-const (
-	h6 = "heart6"
-	d6 = "diamond6"
-	c6 = "club6"
-	s6 = "spade6"
-)
+func (t *Table) userByID(userID int) (int, bool) {
+	for i := range t.players {
+		if t.players[i].id == userID {
+			return i, true
+		}
+	}
+	return 0, false
+}

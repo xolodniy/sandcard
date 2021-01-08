@@ -13,7 +13,7 @@ func New() *Application {
 }
 
 func (a *Application) CreateTable() (int, error) {
-	t := NewTable().AddDeck(4)
+	t := NewTable()
 	go t.Start()
 	a.tables[t.ID] = t
 	return t.ID, nil
