@@ -15,14 +15,17 @@ var wsupgrader = websocket.Upgrader{
 }
 
 // @Summary Join table
-// @Description Initiate ws connection
+// @Description Subscribe to table and collaborate with other players
+// @Description You will receive notifications about all changes on the table.
+// @Description You also are allowed to initiate some changes(events) by yourself
+// @Description More info about table events in /api/v1/table/help
 // @Description
-// @Param tableID param int true "TableID" Default(1)
+// @Param tableID path int true "TableID" Default(1)
 // @Accept  json
 // @Produce  json
-// @Failure 401
+// @Failure 400
 // @Failure 500
-// @Router /api/v1/table/{tableID}/join [post]
+// @Router /api/v1/table/id{tableID}/join [post]
 func (c *Controller) joinTable(ctx *gin.Context) {
 	ctx.Request.Header.Del("Origin")
 	tableID, err := strconv.Atoi(ctx.Param("id"))

@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
 )
 
 type Controller struct {
@@ -24,8 +26,9 @@ func New(a Application) *Controller {
 		router: gin.Default(),
 		app:    a,
 	}
+	c.router.GET("/api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	c.router.POST("/api/v1/table", c.createTable)
-	c.router.GET("/api/v1/table/:id/join", c.joinTable)
+	c.router.GET("/api/v1/table/id:id/join", c.joinTable)
 	return c
 }
 
@@ -35,6 +38,7 @@ func (c *Controller) Serve(port int) {
 		Handler: c.router,
 	}
 
+	fmt.Printf("http server started on :%d\n", port)
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		logrus.WithError(err).Fatal("can't start serving http")
 	}

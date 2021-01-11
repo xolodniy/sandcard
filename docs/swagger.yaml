@@ -1,0 +1,78 @@
+definitions:
+  controller.CreateTableResponse:
+    properties:
+      id:
+        example: 1
+        type: integer
+    type: object
+  controller.TableEventsResponse:
+    properties:
+      description:
+        type: string
+      extra:
+        type: object
+      response:
+        type: object
+      type:
+        type: string
+    type: object
+info:
+  contact:
+    email: stepan.morozov.work@gmail.com
+    name: Stepan Morozov
+  description: Documentation for HTTP API
+  title: sandcard API reference
+paths:
+  /api/v1/table:
+    post:
+      consumes:
+      - application/json
+      description: |
+        Returns table id which should be used for joining
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.CreateTableResponse'
+        "500": {}
+      summary: Create new table
+  /api/v1/table/help:
+    get:
+      consumes:
+      - application/json
+      description: |
+        Documentation about events you can initiate after connect to table
+        Some events has additional params, which can be passed throw field 'extra' in request
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.TableEventsResponse'
+      summary: Table events
+  /api/v1/table/id{tableID}/join:
+    post:
+      consumes:
+      - application/json
+      description: |
+        Subscribe to table and collaborate with other players
+        You will receive notifications about all changes on the table.
+        You also are allowed to initiate some changes(events) by yourself
+        More info about table events in /api/v1/table/help
+      parameters:
+      - default: 1
+        description: TableID
+        in: path
+        name: tableID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "400": {}
+        "500": {}
+      summary: Join table
+swagger: "2.0"

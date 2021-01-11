@@ -1,0 +1,108 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Documentation for HTTP API",
+        "title": "sandcard API reference",
+        "contact": {
+            "name": "Stepan Morozov",
+            "email": "stepan.morozov.work@gmail.com"
+        }
+    },
+    "paths": {
+        "/api/v1/table": {
+            "post": {
+                "description": "Returns table id which should be used for joining\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create new table",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.CreateTableResponse"
+                        }
+                    },
+                    "500": {}
+                }
+            }
+        },
+        "/api/v1/table/help": {
+            "get": {
+                "description": "Documentation about events you can initiate after connect to table\nSome events has additional params, which can be passed throw field 'extra' in request\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Table events",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.TableEventsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/table/id{tableID}/join": {
+            "post": {
+                "description": "Subscribe to table and collaborate with other players\nYou will receive notifications about all changes on the table.\nYou also are allowed to initiate some changes(events) by yourself\nMore info about table events in /api/v1/table/help\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Join table",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "TableID",
+                        "name": "tableID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "400": {},
+                    "500": {}
+                }
+            }
+        }
+    },
+    "definitions": {
+        "controller.CreateTableResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "controller.TableEventsResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "object"
+                },
+                "response": {
+                    "type": "object"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
