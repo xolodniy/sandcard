@@ -18,7 +18,7 @@ var wsupgrader = websocket.Upgrader{
 // @Description Subscribe to table and collaborate with other players
 // @Description You will receive notifications about all changes on the table.
 // @Description You also are allowed to initiate some changes(events) by yourself
-// @Description More info about table events in /api/v1/table/help
+// @Description More info about table events in https://github.com/xolodniy/sandcard/blob/master/application/events.md
 // @Description
 // @Param tableID path int true "TableID" Default(1)
 // @Accept  json
